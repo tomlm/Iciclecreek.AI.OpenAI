@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iciclecreek.OpenAI.Recognizer", "Iciclecreek.OpenAI.Recognizer\Iciclecreek.OpenAI.Recognizer.csproj", "{F1819E3C-74CA-499A-AE5A-150C414849CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iciclecreek.OpenAI.Recognizer.Tests", "Iciclecreek.OpenAI.Recognizer.Tests\Iciclecreek.OpenAI.Recognizer.Tests.csproj", "{D42F512F-BB72-40B7-992D-BFA477CBAE0B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1819E3C-74CA-499A-AE5A-150C414849CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1819E3C-74CA-499A-AE5A-150C414849CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1819E3C-74CA-499A-AE5A-150C414849CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1819E3C-74CA-499A-AE5A-150C414849CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D42F512F-BB72-40B7-992D-BFA477CBAE0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D42F512F-BB72-40B7-992D-BFA477CBAE0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D42F512F-BB72-40B7-992D-BFA477CBAE0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D42F512F-BB72-40B7-992D-BFA477CBAE0B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ACFB65BA-772B-45F4-8D45-6C0EE5DE49E0}
+	EndGlobalSection
+EndGlobal
