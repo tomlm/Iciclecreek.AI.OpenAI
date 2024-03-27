@@ -1,10 +1,16 @@
-﻿namespace Iciclecreek.OpenAI.Recognizer
-{
-    public class FunctionDefinition
-    {
-        public FunctionDefinition() { }
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
-        public FunctionDefinition(string signature, string description, params string[] examples)
+namespace Iciclecreek.AI.OpenAI
+{
+    public class FunctionSignature
+    {
+        public FunctionSignature() 
+        {
+        }
+
+        public FunctionSignature(string signature, string description, params string[] examples)
         {
             Signature = signature;
             Description = description;
@@ -14,12 +20,12 @@
         /// <summary>
         /// Signature for the intent (Example: Add(x, y) )
         /// </summary>
-        public string Signature { get; set; }
+        public string Signature { get; set; } = String.Empty;
 
         /// <summary>
         /// Description of the intent (Example: Adds two numbers)
         /// </summary>
-        public string Description { get; set; }
+        public string Description { get; set; } = String.Empty;
 
         /// <summary>
         /// (OPTIONAL) Examples of intent

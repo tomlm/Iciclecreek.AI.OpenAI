@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Iciclecreek.OpenAI.Recognizer\Iciclecreek.OpenAI.Recognizer.csproj" />
+    <ProjectReference Include="..\Iciclecreek.AI.OpenAI\Iciclecreek.AI.OpenAI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

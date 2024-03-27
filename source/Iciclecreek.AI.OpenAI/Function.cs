@@ -1,10 +1,13 @@
 ﻿
-namespace Iciclecreek.OpenAI.Recognizer
+using System;
+using System.Collections.Generic;
+
+namespace Iciclecreek.AI.OpenAI
 {
 
     public class Function
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = String.Empty;
 
         public List<object> Args { get; set; } = new List<object>();
 

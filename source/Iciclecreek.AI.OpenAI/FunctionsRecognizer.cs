@@ -1,18 +1,19 @@
 ﻿using Azure.AI.OpenAI;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Iciclecreek.OpenAI.Recognizer
+namespace Iciclecreek.AI.OpenAI
 {
     /// <summary>
-    /// Recognizer which recognizes multiple commands as a single "Functions" intent.
+    /// FunctionsRecognizer is a recognizer which uses OpenAI model to recognize multiple Functions
     /// </summary>
     public class FunctionsRecognizer
     {
-        private const string IM_START = "<|im_start|>";
-        private const string IM_END = "<|im_end|>";
-        private const string STOP = "<|STOP";
-
         private readonly OpenAIClient _openAIClient;
 
         public FunctionsRecognizer(OpenAIClient openAIClient)
@@ -23,20 +24,30 @@ namespace Iciclecreek.OpenAI.Recognizer
         /// <summary>
         /// Functions to recognize
         /// </summary>
-        public List<FunctionDefinition> Functions = new List<FunctionDefinition>();
+        public List<FunctionSignature> Functions = new List<FunctionSignature>();
 
-        public async virtual Task<List<Function>> RecognizeAsync(string model, string text, string instructions = null, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Recognize functions in text
+        /// </summary>
+        /// <param name="text">text</param>
+        /// <param name="modelOrDeploymentName">The OpenAI model name or Azure OpenAI DeploymentName</param>
+        /// <param name="instructions">Optional instructions to insert in to System instructions</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>List of identified functions.</returns>
+        public virtual async Task<List<Function>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-3.5-turbo", string? instructions = null, CancellationToken cancellationToken = default)
         {
-            Debug.WriteLine("===== RECOGNIZE PROMPT");
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("<|im_start|>system\r\nI am a bot which excels at examining users text and identifying functions in it from the user text.\r\n");
-            sb.AppendLine($"Today is: {DateTime.Now}");
-            sb.AppendLine();
-            if (!String.IsNullOrEmpty(instructions))
+            if (String.IsNullOrWhiteSpace(text))
             {
-                sb.AppendLine(instructions);
-                sb.AppendLine();
+                return new List<Function>();
             }
+
+            var messages = new List<ChatRequestMessage>();
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"I am a bot which excels at examining users text and identifying functions in it from the user text.");
+            sb.AppendLine($"Today is: {DateTime.Now}.");
+            if (!String.IsNullOrWhiteSpace(instructions))
+                sb.AppendLine(instructions);
+
             sb.AppendLine("FUNCTIONLIST:");
             foreach (var intent in Functions)
             {
@@ -48,20 +59,13 @@ namespace Iciclecreek.OpenAI.Recognizer
             }
             sb.AppendLine();
             sb.AppendLine(@"Transform the user text only (not the bot text) into a list of identified functions (from FUNCTIONLIST).");
-            //sb.AppendLine("Bot said:");
-            //sb.AppendLine(lastPrompt);
-            sb.AppendLine("<|im_end|>");
-            sb.AppendLine("<|im_start|>user");
-            sb.AppendLine(text);
-            sb.AppendLine("<|im_end|>");
-            sb.AppendLine("<|im_start|>assistant");
-            sb.AppendLine("The comma delimited list of functions found is ");
-
-            Debug.WriteLine(sb.ToString());
+            messages.Add(new ChatRequestSystemMessage(sb.ToString()));
+            messages.Add(new ChatRequestUserMessage(text));
+            messages.Add(new ChatRequestAssistantMessage("The comma delimited list of functions found is "));
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            var response = await GetCompletionsAsync(model, sb.ToString(), 0.0f, _openAIClient, maxTokens: 1500, cancellationToken: cancellationToken);
+            var response = await GetCompletionsAsync(modelOrDeploymentName, messages, 0.0f, _openAIClient, maxTokens: 1500, cancellationToken: cancellationToken);
             sw.Stop();
 
             Debug.WriteLine($"===== RECOGNIZE RESPONSE {sw.Elapsed}");
@@ -77,20 +81,24 @@ namespace Iciclecreek.OpenAI.Recognizer
         }
 
 
-        private async Task<string> GetCompletionsAsync(string model, string prompt, float temp, OpenAIClient openAIClient, string[] stopWords = null, int maxTokens = 1500, float topP = 0.0f, float presencePenalty = 0.0f, float frequencyPenalty = 0.0f, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+        private async Task<string?> GetCompletionsAsync(string modelOrDeployment, List<ChatRequestMessage> messages, float temp, OpenAIClient openAIClient, string[]? stopWords = null, int maxTokens = 1500, float topP = 0.0f, float presencePenalty = 0.0f, float frequencyPenalty = 0.0f, int? timeout = null, CancellationToken cancellationToken = default)
         {
+            if (messages.Count == 0)
+            {
+                return String.Empty;
+            }
+
             for (int i = 0; i < 3; i++)
             {
 
                 try
                 {
-
                     var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    cts.CancelAfter(timeout.HasValue ? timeout.Value.Milliseconds : 5 * 1000);
+                    cts.CancelAfter(timeout.HasValue ? timeout.Value : 5 * 1000);
 
                     var options = new ChatCompletionsOptions()
                     {
-                        DeploymentName = "gpt-3.5-turbo", // Use DeploymentName for "model" with non-Azure clients
+                        DeploymentName = modelOrDeployment,
                         Temperature = temp,
                         MaxTokens = maxTokens,
                         NucleusSamplingFactor = (float)0.0,
@@ -98,45 +106,8 @@ namespace Iciclecreek.OpenAI.Recognizer
                         PresencePenalty = presencePenalty,
                         User = Guid.NewGuid().ToString("n")
                     };
-                    if (stopWords != null)
-                    {
-                        foreach (var stopWord in stopWords)
-                        {
-                            options.StopSequences.Add(stopWord);
-                        }
-                    }
-                    else
-                    {
-                        options.StopSequences.Add(STOP);
-                    }
-                    Debug.WriteLine($"---> STOPWORDS: [{string.Join(",", options.StopSequences)}]");
-
-                    ChatRole chatRole = ChatRole.User;
-                    var chatTexts = prompt.Split(IM_START, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    foreach (var chatText in chatTexts)
-                    {
-                        ChatRequestMessage message = null;
-                        if (chatText.StartsWith("user"))
-                        {
-                            int iEnd = chatText.IndexOf(IM_END);
-                            message = new ChatRequestUserMessage(chatText.Substring("user".Length, iEnd - "user".Length));
-                        }
-                        else if (chatText.StartsWith("assistant"))
-                        {
-                            int iEnd = chatText.IndexOf(IM_END);
-                            if (iEnd > 0)
-                                message = new ChatRequestAssistantMessage(chatText.Substring("assistant".Length, iEnd - "assistant".Length));
-                            else
-                                message = new ChatRequestAssistantMessage(chatText.Substring("assistant".Length));
-                        }
-                        else if (chatText.StartsWith("system"))
-                        {
-                            int iEnd = chatText.IndexOf(IM_END);
-                            message = new ChatRequestSystemMessage(chatText.Substring("system".Length, iEnd - "system".Length));
-                        }
-
+                    foreach (var message in messages)
                         options.Messages.Add(message);
-                    }
 
                     var response = await openAIClient.GetChatCompletionsAsync(/*model, */options, cts.Token);
                     return response.Value.Choices.FirstOrDefault()?.Message.Content;
@@ -144,10 +115,10 @@ namespace Iciclecreek.OpenAI.Recognizer
                 }
                 catch (Exception err)
                 {
-
+                    Debug.WriteLine(err.Message);
                 }
             }
-            return "Failed";
+            return null;
         }
 
         // write method to properly tokenize and parse comma delimited list of functions like:
@@ -191,7 +162,7 @@ namespace Iciclecreek.OpenAI.Recognizer
                                 if (inArray)
                                     arrayArgs.Add(arg.Trim());
                                 else
-                                    function.Args.Add(arg.Trim());
+                                    function?.Args.Add(arg.Trim());
                             }
                             arg = "";
                             continue;
@@ -213,9 +184,9 @@ namespace Iciclecreek.OpenAI.Recognizer
                             if (inArray)
                                 arrayArgs.Add(arg.Trim());
                             else
-                                function.Args.Add(arg.Trim());
+                                function?.Args.Add(arg.Trim());
                         }
-                        functions.Add(function);
+                        functions.Add(function!);
                         function = null;
                         arg = "";
                         continue;
@@ -228,7 +199,7 @@ namespace Iciclecreek.OpenAI.Recognizer
                             if (inArray)
                                 arrayArgs.Add(arg.Trim());
                             else
-                                function.Args.Add(arg.Trim());
+                                function?.Args.Add(arg.Trim());
                         }
                         arg = "";
                     }
@@ -244,7 +215,7 @@ namespace Iciclecreek.OpenAI.Recognizer
                         {
                             arrayArgs.Add(arg.Trim());
                         }
-                        function.Args.Add(arrayArgs);
+                        function?.Args.Add(arrayArgs);
                         inArray = false;
                         arg = "";
                         continue;

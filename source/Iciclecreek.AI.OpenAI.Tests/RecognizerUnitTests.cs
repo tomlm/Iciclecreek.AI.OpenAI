@@ -1,14 +1,12 @@
 using Azure.AI.OpenAI;
-using Iciclecreek.OpenAI.Recognizer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Iciclecreek.OpenAI.Recognizer.Tests
+namespace Iciclecreek.AI.OpenAI.Tests
 {
     [TestClass]
     public class RecognizerUnitTests
     {
-        private const string MODEL = "gpt-3.5-turbo";
         private static Lazy<IServiceProvider> _services = new Lazy<IServiceProvider>(() =>
         {
             var services = new ServiceCollection();
@@ -25,8 +23,7 @@ namespace Iciclecreek.OpenAI.Recognizer.Tests
         public async Task TestGibberishIsNothing()
         {
             var recognizer = _services.Value.GetRequiredService<MathFunctionRecognizer>();
-            var instructions = $"When you are done say 'Tada!'";
-            var functions = await recognizer.RecognizeAsync(MODEL, "gibberish", instructions);
+            var functions = await recognizer.RecognizeAsync("gibberish", $"These are not the droids you are seeking.");
             Assert.IsNotNull(functions);
             Assert.AreEqual(0, functions.Count);
         }
@@ -35,7 +32,7 @@ namespace Iciclecreek.OpenAI.Recognizer.Tests
         public async Task TestEmpty()
         {
             var recognizer = _services.Value.GetRequiredService<MathFunctionRecognizer>();
-            var  functions = await recognizer.RecognizeAsync(MODEL, "");
+            var  functions = await recognizer.RecognizeAsync("");
             Assert.IsNotNull(functions);
             Assert.AreEqual(0, functions.Count);
         }
@@ -44,7 +41,7 @@ namespace Iciclecreek.OpenAI.Recognizer.Tests
         public async Task TestMath()
         {
             var recognizer = _services.Value.GetRequiredService<MathFunctionRecognizer>();
-            var functions = await recognizer.RecognizeAsync(MODEL, "What is 5x3? What is 1+2? I want to subtract 73 from 3000...");
+            var functions = await recognizer.RecognizeAsync("What is 5x3? What is 1+2? I want to subtract 73 from 3000...");
             Assert.IsNotNull(functions);
             Assert.AreEqual(3, functions.Count);
 
@@ -59,6 +56,27 @@ namespace Iciclecreek.OpenAI.Recognizer.Tests
             Assert.AreEqual("Subtract", functions[2].Name);
             Assert.AreEqual("3000", functions[2].Args[0].ToString());
             Assert.AreEqual("73", functions[2].Args[1].ToString());
+        }
+
+        [TestMethod]
+        public async Task TestMultiplySame()
+        {
+            var recognizer = _services.Value.GetRequiredService<MathFunctionRecognizer>();
+            var functions = await recognizer.RecognizeAsync("What is 5x3? What is five by four? Multiply fifteen by one hundred and 3");
+            Assert.IsNotNull(functions);
+            Assert.AreEqual(3, functions.Count);
+
+            Assert.AreEqual("Multiply", functions[0].Name);
+            Assert.AreEqual("5", functions[0].Args[0].ToString());
+            Assert.AreEqual("3", functions[0].Args[1].ToString());
+
+            Assert.AreEqual("Multiply", functions[1].Name);
+            Assert.AreEqual("5", functions[1].Args[0].ToString());
+            Assert.AreEqual("4", functions[1].Args[1].ToString());
+
+            Assert.AreEqual("Multiply", functions[2].Name);
+            Assert.AreEqual("15", functions[2].Args[0].ToString());
+            Assert.AreEqual("103", functions[2].Args[1].ToString());
         }
     }
 }
