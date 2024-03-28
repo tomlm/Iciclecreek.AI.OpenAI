@@ -14,7 +14,7 @@ namespace Iciclecreek.AI.OpenAI.Tests
                         .AddUserSecrets<RecognizerUnitTests>()
                         .Build());
             services.AddSingleton<OpenAIClient>((sp) => new OpenAIClient(sp.GetRequiredService<IConfiguration>()["OpenAIKey"]));
-            services.AddTransient<FunctionsRecognizer>();
+            services.AddTransient<SemanticActionRecognizer>();
             services.AddTransient<MathFunctionRecognizer>();
             return services.BuildServiceProvider();
         });
@@ -62,7 +62,7 @@ namespace Iciclecreek.AI.OpenAI.Tests
         public async Task TestMultiplySame()
         {
             var recognizer = _services.Value.GetRequiredService<MathFunctionRecognizer>();
-            var functions = await recognizer.RecognizeAsync("What is 5x3? What is five by four? Multiply fifteen by one hundred and 3");
+            var functions = await recognizer.RecognizeAsync("What is 5x3? What is five by four? Multiply fifteen by one hundred and three");
             Assert.IsNotNull(functions);
             Assert.AreEqual(3, functions.Count);
 

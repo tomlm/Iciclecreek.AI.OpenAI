@@ -10,13 +10,13 @@ using System.Threading.Tasks;
 namespace Iciclecreek.AI.OpenAI
 {
     /// <summary>
-    /// FunctionsRecognizer is a recognizer which uses OpenAI model to recognize multiple Functions
+    /// SemanticActionRecognizer is a recognizer which uses OpenAI model to recognize multiple semantic actions
     /// </summary>
-    public class FunctionsRecognizer
+    public class SemanticActionRecognizer
     {
         private readonly OpenAIClient _openAIClient;
 
-        public FunctionsRecognizer(OpenAIClient openAIClient)
+        public SemanticActionRecognizer(OpenAIClient openAIClient)
         {
             _openAIClient = openAIClient;
         }
@@ -24,21 +24,21 @@ namespace Iciclecreek.AI.OpenAI
         /// <summary>
         /// Functions to recognize
         /// </summary>
-        public List<FunctionSignature> Functions = new List<FunctionSignature>();
+        public List<SemanticActionDefinition> Actions = new List<SemanticActionDefinition>();
 
         /// <summary>
-        /// Recognize functions in text
+        /// Recognize actions in text
         /// </summary>
         /// <param name="text">text</param>
         /// <param name="modelOrDeploymentName">The OpenAI model name or Azure OpenAI DeploymentName</param>
         /// <param name="instructions">Optional instructions to insert in to System instructions</param>
         /// <param name="cancellationToken"></param>
         /// <returns>List of identified functions.</returns>
-        public virtual async Task<List<Function>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-3.5-turbo", string? instructions = null, CancellationToken cancellationToken = default)
+        public virtual async Task<List<SemanticAction>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-3.5-turbo", string? instructions = null, CancellationToken cancellationToken = default)
         {
             if (String.IsNullOrWhiteSpace(text))
             {
-                return new List<Function>();
+                return new List<SemanticAction>();
             }
 
             var messages = new List<ChatRequestMessage>();
@@ -48,17 +48,22 @@ namespace Iciclecreek.AI.OpenAI
             if (!String.IsNullOrWhiteSpace(instructions))
                 sb.AppendLine(instructions);
 
-            sb.AppendLine("FUNCTIONLIST:");
-            foreach (var intent in Functions)
+            sb.AppendLine("Functions have the signature of FUNCTION(`...`, `...`, ...)");
+            sb.AppendLine($"The FUNCTIONLIST is:[{ String.Join(",", Actions.Select(a => a.Name))}]");
+            sb.AppendLine("The function definitions are:");
+            foreach (var action in Actions)
             {
-                sb.AppendLine($"* {intent.Signature} - {intent.Description}. Examples:");
-                foreach (var example in intent.Examples)
+                sb.AppendLine($" {action.Name}");
+                sb.AppendLine($"    signature: {action.GetSignature()}");
+                sb.AppendLine($"    description: {action.Description}");
+                sb.AppendLine($"    examples:");
+                foreach (var example in action.Examples)
                 {
-                    sb.AppendLine($"  - {example}");
+                    sb.AppendLine($"    - {example.Text} => {example.Output}");
                 }
             }
             sb.AppendLine();
-            sb.AppendLine(@"Transform the user text only (not the bot text) into a list of identified functions (from FUNCTIONLIST).");
+            sb.AppendLine(@"Transform the user text only (not the bot text) into functions in the FUNCTIONLIST.");
             messages.Add(new ChatRequestSystemMessage(sb.ToString()));
             messages.Add(new ChatRequestUserMessage(text));
             messages.Add(new ChatRequestAssistantMessage("The comma delimited list of functions found is "));
@@ -71,7 +76,7 @@ namespace Iciclecreek.AI.OpenAI
             Debug.WriteLine($"===== RECOGNIZE RESPONSE {sw.Elapsed}");
             Debug.WriteLine(response);
 
-            var functions = new List<Function>();
+            var functions = new List<SemanticAction>();
             if (response != null)
             {
                 functions = ParseFunctions(response.Trim());
@@ -125,14 +130,14 @@ namespace Iciclecreek.AI.OpenAI
         // F("arg1", "Arg,2"), F(arg1), ... into a list of Command objects        
         // F('arg1', ['arg2','arg3']), F(arg1), ... into a list of Command objects
 
-        public static List<Function> ParseFunctions(string text)
+        public static List<SemanticAction> ParseFunctions(string text)
         {
             if (text.StartsWith("FUNCTIONLIST:"))
                 text = text.Substring("FUNCTIONLIST:".Length);
-            text = text.Trim().TrimStart('[').TrimEnd(']');
+            text = text.TrimStart('[', '-', ' ').TrimEnd(']', ' ');
 
-            var functions = new List<Function>();
-            var function = new Function();
+            var functions = new List<SemanticAction>();
+            var function = new SemanticAction();
             var arg = "";
             var inArg = false;
             char quoteChar = ' ';
@@ -145,7 +150,7 @@ namespace Iciclecreek.AI.OpenAI
                 var c = text[i];
                 if (inArg)
                 {
-                    if (quoteChar == ' ' && c == '"')
+                    if (quoteChar == ' ' && c == '`')
                     {
                         inArg = true;
                         quoteChar = c;
@@ -215,7 +220,7 @@ namespace Iciclecreek.AI.OpenAI
                         {
                             arrayArgs.Add(arg.Trim());
                         }
-                        function?.Args.Add(arrayArgs);
+                        function?.Args.AddRange(arrayArgs);
                         inArray = false;
                         arg = "";
                         continue;
@@ -242,7 +247,7 @@ namespace Iciclecreek.AI.OpenAI
                     {
                         inFunctionName = false;
                         inArg = true;
-                        function = new Function();
+                        function = new SemanticAction();
                         function.Name = arg.Trim();
                         arg = "";
                     }
