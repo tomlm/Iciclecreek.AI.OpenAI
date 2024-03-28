@@ -13,7 +13,13 @@ namespace Iciclecreek.AI.OpenAI.FormFill
 {
     public static class FormFillExtensions
     {
-        public static IServiceCollection AddFormFiller<ModelT>(this IServiceCollection services)
+        /// <summary>
+        /// Add a FormFillEngine`ModelT` to the service collection
+        /// </summary>
+        /// <typeparam name="ModelT"></typeparam>
+        /// <param name="services"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddFormFillEngine<ModelT>(this IServiceCollection services)
             where ModelT : class
         {
             services.AddTransient<FormFillRecognizer<ModelT>>();
@@ -117,7 +123,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
 
         public static bool IsList(this Type type)
         {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IList<>);
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
         }
 
         public static DateTimeOffset Merge(this TimexProperty timex, DateTimeOffset? dt)

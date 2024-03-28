@@ -15,11 +15,20 @@ namespace Iciclecreek.AI.OpenAI
     {
         public string Name { get; set; } = String.Empty;
 
-        public List<string> Args { get; set; } = new List<string>();
+        // string or array 
+        public List<object> Args { get; set; } = new List<object>();
 
         public override string ToString()
         {
-            return $"{Name}({string.Join(',', Args.Select(a => $"'{a.Trim('\'','"')}'"))}";
+            var args = string.Join(',', Args.Select(arg =>
+            {
+                if (arg is string)
+                    return $"'{arg}'";
+                else if (arg.GetType().IsArray)
+                    return $"[{string.Join(',', (arg as Array).OfType<object>().Select(a => $"'{a}'"))}]";
+                return arg.ToString();
+            }));
+            return $"{Name}({args}";
         }
     }
 }

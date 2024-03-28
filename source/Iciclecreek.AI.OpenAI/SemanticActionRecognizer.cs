@@ -220,7 +220,7 @@ namespace Iciclecreek.AI.OpenAI
                         {
                             arrayArgs.Add(arg.Trim());
                         }
-                        function?.Args.AddRange(arrayArgs);
+                        function?.Args.Add(arrayArgs);
                         inArray = false;
                         arg = "";
                         continue;

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System;
 using System.ComponentModel.Design;
+using System.Linq;
 
 namespace Iciclecreek.AI.OpenAI.FormFill
 {
@@ -23,7 +24,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
             Actions.Add(new SemanticActionDefinition(FormFillActions.REMOVE, "remove a value from a property.")
                 .AddArgument("property")
                 .AddArgument("value")
-                .AddExample("Remove apple from cart", "card","apple"));
+                .AddExample("Remove apple from cart", "card", "apple"));
 
             Actions.Add(new SemanticActionDefinition(FormFillActions.CLEAR, "clears the property values to default state")
                 .AddArgument("property")
@@ -41,13 +42,17 @@ namespace Iciclecreek.AI.OpenAI.FormFill
             foreach (var property in typeof(ModelT).GetProperties())
             {
                 var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-                if (type.IsEnum || !type.IsValueType || type == typeof(String))
-                    sb.AppendLine($"  `{property.Name}` which is Text used for {property.GetPropertyLabel()}");
+                if (type.IsEnum || type == typeof(String))
+                    sb.AppendLine($"  `{property.Name}` which is a String used for {property.GetPropertyLabel()}");
                 else if (type == typeof(DateOnly) || type == typeof(DateTime) || type == typeof(DateTimeOffset))
                     sb.AppendLine($"  `{property.Name}` which is a date used for {property.GetPropertyLabel()}");
                 else if (type == typeof(TimeOnly) || type == typeof(TimeSpan))
                     sb.AppendLine($"  `{property.Name}` which is time used for {property.GetPropertyLabel()}");
-                else 
+                else if (type.IsList())
+                    sb.AppendLine($"  `{property.Name}` which is {type.GetGenericArguments().First().Name}[] used for {property.GetPropertyLabel()}");
+                else if (!type.IsValueType)
+                    sb.AppendLine($"  `{property.Name}` which is Text used for {property.GetPropertyLabel()}");
+                else
                     sb.AppendLine($"  `{property.Name}` which is {type.Name} used for {property.GetPropertyLabel()}");
             }
 

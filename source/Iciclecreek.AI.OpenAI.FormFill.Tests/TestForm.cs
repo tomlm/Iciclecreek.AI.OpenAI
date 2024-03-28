@@ -41,5 +41,8 @@ namespace Iciclecreek.AI.OpenAI.FormFill.Tests
 
         [Required(ErrorMessage = "Favorite Pet is required")]
         public Pets? FavoritePet { get; set; }
+
+        [Required(ErrorMessage = "Favorite Color is required")]
+        public List<string> Categories { get; private set; } = new List<string>();
     }
 }

@@ -29,7 +29,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
 
         public FormFillRecognizer<ModelT> Recognizer { get; set; }
 
-        public async Task<List<SemanticActionResult>> EditModelAsync(ModelT model, String text, CancellationToken cancellationToken)
+        public async Task<List<SemanticActionResult>> InterpretTextAsync(ModelT model, String text, CancellationToken cancellationToken)
         {
             var actions = await Recognizer.RecognizeAsync(text, cancellationToken: cancellationToken);
 
@@ -73,14 +73,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
             var property = function.Args.Cast<String>().First();
             var value = function.Args.Skip(1).FirstOrDefault();
 
-            // see if value matches property schema
-            var (newValue, errorResponse) = await ResolvePropertyValue(model, property, value?.ToString());
-            if (errorResponse != null)
-            {
-                return function.Failed(errorResponse);
-            }
-
-            // actually assign the value
+            // get the property
             if (!typeof(ModelT).TryGetPropertyInfo(property, out var propertyInfo))
             {
                 return function.Failed($"Unknown property {property}");
@@ -90,10 +83,29 @@ namespace Iciclecreek.AI.OpenAI.FormFill
             if (propertyInfo.PropertyType.IsList())
             {
                 var collection = (IList)propertyInfo.GetValue(model);
-                collection.Add(value);
+                if (value is string || value.GetType().IsValueType)
+                {
+                    if (!collection.Contains(value))
+                        collection.Add(value);
+                }
+                else
+                {
+                    foreach (var val in (IEnumerable)value)
+                    {
+                        if (!collection.Contains(val))
+                            collection.Add(val);
+                    }
+                }
 
                 // add ADDED(value) response
                 return function.Success($"Added {value} to {propertyInfo.GetPropertyLabel()}");
+            }
+
+            // see if value matches property schema
+            var (newValue, errorResponse) = await ResolvePropertyValue(model, property, value?.ToString());
+            if (errorResponse != null)
+            {
+                return function.Failed(errorResponse);
             }
 
             // get old value if any
@@ -147,9 +159,22 @@ namespace Iciclecreek.AI.OpenAI.FormFill
             if (propertyInfo.PropertyType.IsList())
             {
                 var collection = (IList)propertyInfo.GetValue(model);
-                collection.Remove(value);
+                if (value is string || value.GetType().IsValueType)
+                {
+                    collection.Remove(value);
+                }
+                else
+                {
+                    foreach (var val in (IEnumerable)value)
+                    {
+                        collection.Remove(val);
+                    }
+                }
+
+                // add REMOVE(value) response
                 return function.Success($"Removed {value} from {propertyInfo.GetPropertyLabel()}");
             }
+
             propertyInfo.SetValue(model, default(ModelT));
             return function.Success($"Cleared {propertyInfo.GetPropertyLabel()}");
         }
@@ -264,10 +289,11 @@ namespace Iciclecreek.AI.OpenAI.FormFill
                 DisplayName = propertyInfo.GetPropertyLabel(),
             };
 
-            var propertyType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+            Type valueType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
             if (propertyInfo.PropertyType.IsList())
             {
-                propertyType = propertyInfo.PropertyType.GetElementType()!;
+                valueType = propertyInfo.PropertyType.GetGenericArguments().First()!;
             }
 
             // Figure out base time for references
@@ -283,12 +309,15 @@ namespace Iciclecreek.AI.OpenAI.FormFill
             //    }
             //}
             object? realValue = null;
-            switch (Type.GetTypeCode(propertyType))
+            switch (Type.GetTypeCode(valueType))
             {
                 case TypeCode.String:
                     realValue = value.Trim();
-                    if (!Validator.TryValidateProperty(realValue, context, validationResults))
-                        return (null, GetErrorMessage(value, propertyInfo, validationResults));
+                    if (!propertyInfo.PropertyType.IsList())
+                    {
+                        if (!Validator.TryValidateProperty(realValue, context, validationResults))
+                            return (null, GetErrorMessage(value, propertyInfo, validationResults));
+                    }
                     return (realValue, null);
                 case TypeCode.Boolean:
                     realValue = RecognizeBool(propertyInfo, value, "en-us");
@@ -304,12 +333,12 @@ namespace Iciclecreek.AI.OpenAI.FormFill
                 case TypeCode.UInt32:
                 case TypeCode.UInt64:
                     {
-                        if (propertyType.IsEnum)
+                        if (valueType.IsEnum)
                         {
-                            var enumChoices = Enum.GetNames(propertyType)
+                            var enumChoices = Enum.GetNames(valueType)
                                 .Select(name =>
                                 {
-                                    Enum val = (Enum)Enum.Parse(propertyType, name);
+                                    Enum val = (Enum)Enum.Parse(valueType, name);
                                     var normalizedName = val.Humanize(LetterCasing.LowerCase);
                                     return new EnumChoice()
                                     {
@@ -407,7 +436,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
 
 
 
-                case TypeCode.Object when propertyType.Name == nameof(DateTimeOffset):
+                case TypeCode.Object when valueType.Name == nameof(DateTimeOffset):
                     {
                         var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
                         realValue = timex.Merge((DateTime?)propertyInfo.GetValue(model));
@@ -416,7 +445,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
                         return (realValue, null);
                     }
 
-                case TypeCode.Object when propertyType.Name == nameof(TimeOnly):
+                case TypeCode.Object when valueType.Name == nameof(TimeOnly):
                     {
                         var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
                         realValue = timex.Merge((TimeOnly?)propertyInfo.GetValue(model));
@@ -425,7 +454,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
                         return (realValue, null);
                     }
 
-                case TypeCode.Object when propertyType.Name == nameof(DateOnly):
+                case TypeCode.Object when valueType.Name == nameof(DateOnly):
                     {
                         var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
                         realValue = timex.Merge((DateOnly?)propertyInfo.GetValue(model));
