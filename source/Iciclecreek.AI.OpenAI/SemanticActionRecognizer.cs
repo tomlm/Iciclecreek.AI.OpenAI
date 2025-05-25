@@ -34,7 +34,7 @@ namespace Iciclecreek.AI.OpenAI
         /// <param name="instructions">Optional instructions to insert in to System instructions</param>
         /// <param name="cancellationToken"></param>
         /// <returns>List of identified functions.</returns>
-        public virtual async Task<List<SemanticAction>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-3.5-turbo", string? instructions = null, CancellationToken cancellationToken = default)
+        public virtual async Task<List<SemanticAction>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-4.1-mini", string? instructions = null, CancellationToken cancellationToken = default)
         {
             if (String.IsNullOrWhiteSpace(text))
             {

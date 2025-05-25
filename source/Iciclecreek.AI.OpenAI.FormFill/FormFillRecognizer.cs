@@ -34,7 +34,7 @@ namespace Iciclecreek.AI.OpenAI.FormFill
                 .AddExample("Start over"));
         }
 
-        public override async Task<List<SemanticAction>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-3.5-turbo", string? instructions = null, CancellationToken cancellationToken = default)
+        public override async Task<List<SemanticAction>> RecognizeAsync(string text, string modelOrDeploymentName = "gpt-4.1-mini", string? instructions = null, CancellationToken cancellationToken = default)
         {
             StringBuilder sb = new StringBuilder(instructions);
             sb.AppendLine($"The properties for the form are:");
