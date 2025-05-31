@@ -15,6 +15,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace Iciclecreek.AI.Forms
 {
@@ -337,17 +338,25 @@ namespace Iciclecreek.AI.Forms
 
                 case TypeCode.DateTime:
                     {
-                        var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                        realValue = timex.Merge((DateTimeOffset?)propertyInfo.GetValue(Form));
+                        if (DateTime.TryParse(value, out refDate))
+                        {
+                            realValue = refDate;
+                        }
+                        else
+                        {
+                            var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
+                            realValue = timex.Merge((DateTimeOffset?)propertyInfo.GetValue(Form));
+                            //foreach (var date in dates)
+                            //{
+                            //    foreach (var time in times)
+                            //    {
+                            //        realValue = new DateTimeOffset(date.Year, date.Month, date.Day, time.Hour, time.Minute, time.Second, TimeSpan.MinValue);
+                            //    }
+                            //}
+                        }
+
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
                         {
-                            foreach (var date in dates)
-                            {
-                                foreach (var time in times)
-                                {
-                                    realValue = new DateTimeOffset(date.Year, date.Month, date.Day, time.Hour, time.Minute, time.Second, TimeSpan.MinValue);
-                                }
-                            }
                             return (null, validationResults);
                         }
                     }
@@ -357,17 +366,34 @@ namespace Iciclecreek.AI.Forms
 
                 case TypeCode.Object when valueType.Name == nameof(DateTimeOffset):
                     {
-                        var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                        realValue = timex.Merge((DateTime?)propertyInfo.GetValue(Form));
+                        if (DateTimeOffset.TryParse(value, out var refDateOffset))
+                        {
+                            realValue = refDateOffset;
+                        }
+                        else
+                        {
+                            var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
+                            realValue = timex.Merge((DateTime?)propertyInfo.GetValue(Form));
+                        }
+
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
                             return (null, validationResults);
+
                         return (realValue, null);
                     }
 
                 case TypeCode.Object when valueType.Name == nameof(TimeOnly):
                     {
-                        var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                        realValue = timex.Merge((TimeOnly?)propertyInfo.GetValue(Form));
+                        if (TimeOnly.TryParse(value, out var timeOnly))
+                        {
+                            realValue = timeOnly;
+                        }
+                        else
+                        {
+                            var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
+                            realValue = timex.Merge((TimeOnly?)propertyInfo.GetValue(Form));
+                        }
+
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
                             return (null, validationResults);
                         return (realValue, null);
@@ -375,8 +401,16 @@ namespace Iciclecreek.AI.Forms
 
                 case TypeCode.Object when valueType.Name == nameof(DateOnly):
                     {
-                        var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                        realValue = timex.Merge((DateOnly?)propertyInfo.GetValue(Form));
+                        if (DateOnly.TryParse(value, out var timeOnly))
+                        {
+                            realValue = timeOnly;
+                        }
+                        else
+                        {
+                            var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
+                            realValue = timex.Merge((DateOnly?)propertyInfo.GetValue(Form));
+                        }
+
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
                             return (null, validationResults);
                         return (realValue, null);
@@ -384,8 +418,19 @@ namespace Iciclecreek.AI.Forms
 
                 case TypeCode.Object when valueType.Name == nameof(TimeSpan):
                     {
-                        var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                        realValue = timex.Merge((TimeSpan?)propertyInfo.GetValue(Form));
+                        if (TimeSpan.TryParse(value, out var timeSpan))
+                        {
+                            realValue = timeSpan;
+                        }
+                        else if (XmlConvert.ToTimeSpan(value) is TimeSpan xmlTimeSpan)
+                        {
+                            realValue = xmlTimeSpan;
+                        }
+                        else
+                        { 
+                            var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
+                            realValue = timex.Merge((TimeSpan?)propertyInfo.GetValue(Form));
+                        }
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
                             return (null, validationResults);
                         return (realValue, null);

@@ -20,6 +20,10 @@ namespace Iciclecreek.AI.Forms.Tests
         public TimeOnly? ArrivalTime { get; set; }
 
         [Required]
+        [DataType(DataType.Duration)]
+        public TimeSpan Duration { get; set; }
+
+        [Required]
         [Display(Name = "Percentage")]
         [Range(minimum: 0f, maximum: 100.0f, ErrorMessage = "Percentage must be between 0 and 100.")]
         public Double? Percent { get; set; }

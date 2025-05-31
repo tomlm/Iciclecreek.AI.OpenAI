@@ -299,6 +299,30 @@ namespace Iciclecreek.AI.Forms.Tests
             Assert.IsTrue(categories.Contains("Books"));
         }
 
+        [TestMethod]
+        public void AssignValue_AssignsDurationProperty()
+        {
+            var formTask = new FormTask<TestForm>();
+            // ISO-8601 duration for 1 day 4 hours: P1DT4H
+            var isoDuration = "P1DT4H";
+            var expected = new TimeSpan(1, 4, 0, 0); // 1 day, 4 hours
+            var result = formTask.AssignValue("Duration", isoDuration);
+            Assert.IsTrue(result.Succeeded, result.Description);
+            Assert.AreEqual(expected, formTask.Form.Duration);
+        }
+
+        [TestMethod]
+        public void AssignValue_AssignsDurationProperty_TimeSpanFormat()
+        {
+            var formTask = new FormTask<TestForm>();
+            // TimeSpan serialization format: c (constant, e.g. "1.04:00:00" for 1 day 4 hours)
+            var timeSpanString = "1.04:00:00";
+            var expected = new TimeSpan(1, 4, 0, 0); // 1 day, 4 hours
+            var result = formTask.AssignValue("Duration", timeSpanString);
+            Assert.IsTrue(result.Succeeded, result.Description);
+            Assert.AreEqual(expected, formTask.Form.Duration);
+        }
+
         public class TestFormWithIntList
         {
             [ItemValidation("Range(0, 100)")]
