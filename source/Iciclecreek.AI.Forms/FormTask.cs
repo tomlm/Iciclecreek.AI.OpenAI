@@ -138,11 +138,14 @@ namespace Iciclecreek.AI.Forms
             if (!propertyInfo!.PropertyType.IsList())
                 return ToolResult.Failed($"Property {property} is not a collection type.");
 
-            var collection = (IList)propertyInfo.GetValue(Form);
-            if (value is string || value.GetType().IsValueType)
+            var (newValue, errorResponse) = ResolvePropertyValue(property, value?.ToString());
+            if (errorResponse != null)
             {
-                collection.Add(value);
+                return ToolResult.Failed(GetErrorMessage(value, propertyInfo, errorResponse), errorResponse);
             }
+
+            var collection = (IList)propertyInfo.GetValue(Form);
+            collection.Add(newValue);
 
             return ToolResult.Success($"Added {value} to {propertyInfo.Name}");
         }
@@ -288,7 +291,7 @@ namespace Iciclecreek.AI.Forms
                         {
                             if (!Enum.TryParse(valueType, value, true, out var enumValue))
                             {
-                                throw new Exception($"I didn't understand {value} as a valid {valueType.Name} value for {propertyInfo.Name}");
+                                return (null, new List<ValidationResult>() { new ValidationResult($"I didn't understand {value} as a valid {valueType.Name} value for {propertyInfo.Name}") });
                             }
                             realValue = enumValue;
 
@@ -301,7 +304,20 @@ namespace Iciclecreek.AI.Forms
                             realValue = RecognizeNumber(propertyInfo, value, "en-us");
                             if (realValue == null)
                             {
-                                throw new Exception($"I didn't understand {value}");
+                                return (null, new List<ValidationResult>() { new ValidationResult($"I didn't understand {value}") });
+                            }
+
+                            if (propertyInfo.PropertyType.IsList())
+                            {
+                                // If it's a list we need to convert the value to the correct type
+                                var itemValidation = propertyInfo.GetCustomAttribute<ItemValidationAttribute>();
+                                if (itemValidation != null)
+                                {
+                                    var validationResult = itemValidation.ValidateItem(realValue);
+                                    if (validationResult != null)
+                                        return (null, new List<ValidationResult>() { validationResult });
+                                }
+                                return (realValue, null);
                             }
 
                             if (!Validator.TryValidateProperty(realValue, context, validationResults))

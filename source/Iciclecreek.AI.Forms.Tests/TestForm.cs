@@ -42,7 +42,10 @@ namespace Iciclecreek.AI.Forms.Tests
         [Required(ErrorMessage = "Favorite Pet is required")]
         public Pets? FavoritePet { get; set; }
 
-        [Required(ErrorMessage = "Favorite Color is required")]
+        [Required(ErrorMessage = "Categories is required")]
         public List<string> Categories { get; private set; } = new List<string>();
+
+        [ItemValidation("RangeAttribute(0, 100)")]
+        public List<int> Numbers { get; private set; } = new List<int>();
     }
 }

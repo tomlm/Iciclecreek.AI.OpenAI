@@ -90,7 +90,39 @@ namespace Iciclecreek.AI.Forms.Tests
             Assert.IsTrue(formTask.Form.Categories.Contains("Books"));
         }
 
-      
+        [TestMethod]
+        public void AddValueToCollection_WorksOnIntCollection()
+        {
+            var form = new TestFormWithIntList();
+            var formTask = new FormTask<TestFormWithIntList>(form);
+            var result = formTask.AddValueToCollection("Numbers", "42");
+            Assert.IsTrue(result.Succeeded, result.Description);
+            Assert.IsTrue(form.Numbers.Contains(42));
+        }
+
+        [TestMethod]
+        public void AddValueToCollection_RejectsInvalidObjectType()
+        {
+            var form = new TestFormWithIntList();
+            var formTask = new FormTask<TestFormWithIntList>(form);
+            // Try to add a string to a List<int>
+            var result = formTask.AddValueToCollection("Numbers", "notanumber");
+            Assert.IsFalse(result.Succeeded);
+        }
+
+        [TestMethod]
+        public void AddValueToCollection_HonorsValidation()
+        {
+            var form = new TestFormWithIntList();
+            var formTask = new FormTask<TestFormWithIntList>(form);
+            // Out of range (should fail validation)
+            var result = formTask.AddValueToCollection("Numbers", "9999");
+            Assert.IsFalse(result.Succeeded);
+            Assert.IsNotNull(result.Errors);
+            Assert.IsTrue(result.Errors.Count > 0);
+            Assert.IsTrue(result.Errors[0].ErrorMessage.Contains("between 0 and 100"));
+        }
+
         [TestMethod]
         public void AddValueToCollection_NonCollectionProperty_ReturnsFailed()
         {
@@ -265,6 +297,12 @@ namespace Iciclecreek.AI.Forms.Tests
             var categories = formTask.GetValue("Categories").Value as List<string>;
             Assert.IsNotNull(categories);
             Assert.IsTrue(categories.Contains("Books"));
+        }
+
+        public class TestFormWithIntList
+        {
+            [ItemValidation("Range(0, 100)")]
+            public List<int> Numbers { get; set; } = new List<int>();
         }
     }
 }
