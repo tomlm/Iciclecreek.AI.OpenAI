@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Iciclecreek.AI.Forms;
+using Iciclecreek.AI.OpenAI.FormFill.Attributes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Iciclecreek.AI.Forms.Tests

@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 
-namespace Iciclecreek.AI.Forms
+namespace Iciclecreek.AI.OpenAI.FormFill.Attributes
 {
     /// <summary>
     /// Composite validation attribute that applies multiple validation attributes to each item in a collection.

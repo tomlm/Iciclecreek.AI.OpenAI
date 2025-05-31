@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Iciclecreek.AI.Forms;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Iciclecreek.AI.OpenAI.FormFill.Attributes;
 
 namespace Iciclecreek.AI.Forms.Tests
 {
@@ -13,6 +11,12 @@ namespace Iciclecreek.AI.Forms.Tests
             [ItemValidation("Range(1, 50)")]
             [UniqueItems]
             public List<int> Numbers { get; set; } = new List<int>();
+        }
+
+        public class EmailListForm
+        {
+            [ItemValidation("EmailAddress")]
+            public List<string> Emails { get; set; } = new List<string>();
         }
 
         [TestMethod]
@@ -46,6 +50,28 @@ namespace Iciclecreek.AI.Forms.Tests
             var isValid = Validator.TryValidateProperty(form.Numbers, context, results);
             Assert.IsFalse(isValid);
             Assert.IsTrue(results[0].ErrorMessage.Contains("Duplicate"));
+        }
+
+        [TestMethod]
+        public void ItemValidation_AllowsValidEmails()
+        {
+            var form = new EmailListForm { Emails = new List<string> { "a@example.com", "b@example.com" } };
+            var context = new ValidationContext(form) { MemberName = nameof(form.Emails) };
+            var results = new List<ValidationResult>();
+            var isValid = Validator.TryValidateProperty(form.Emails, context, results);
+            Assert.IsTrue(isValid);
+            Assert.AreEqual(0, results.Count);
+        }
+
+        [TestMethod]
+        public void ItemValidation_RejectsInvalidEmails()
+        {
+            var form = new EmailListForm { Emails = new List<string> { "a@example.com", "notanemail" } };
+            var context = new ValidationContext(form) { MemberName = nameof(form.Emails) };
+            var results = new List<ValidationResult>();
+            var isValid = Validator.TryValidateProperty(form.Emails, context, results);
+            Assert.IsFalse(isValid);
+            Assert.IsTrue(results[0].ErrorMessage.Contains("Email"));
         }
     }
 }

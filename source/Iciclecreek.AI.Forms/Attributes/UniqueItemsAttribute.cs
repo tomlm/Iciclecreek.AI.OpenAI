@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
-namespace Iciclecreek.AI.Forms
+namespace Iciclecreek.AI.OpenAI.FormFill.Attributes
 {
     /// <summary>
     /// Validation attribute that ensures all elements in a collection are unique.
