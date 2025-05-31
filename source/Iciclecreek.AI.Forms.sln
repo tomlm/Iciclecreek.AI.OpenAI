@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iciclecreek.AI.Forms", "Iciclecreek.AI.Forms\Iciclecreek.AI.Forms.csproj", "{BB731FC2-16E4-B54C-521A-750FE19E7105}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iciclecreek.AI.Forms.Tests", "Iciclecreek.AI.Forms.Tests\Iciclecreek.AI.Forms.Tests.csproj", "{7CBE5BA2-D66B-FF0C-61FD-5934FE40A18E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BB731FC2-16E4-B54C-521A-750FE19E7105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB731FC2-16E4-B54C-521A-750FE19E7105}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB731FC2-16E4-B54C-521A-750FE19E7105}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB731FC2-16E4-B54C-521A-750FE19E7105}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CBE5BA2-D66B-FF0C-61FD-5934FE40A18E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CBE5BA2-D66B-FF0C-61FD-5934FE40A18E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CBE5BA2-D66B-FF0C-61FD-5934FE40A18E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CBE5BA2-D66B-FF0C-61FD-5934FE40A18E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ACFB65BA-772B-45F4-8D45-6C0EE5DE49E0}
+	EndGlobalSection
+EndGlobal
