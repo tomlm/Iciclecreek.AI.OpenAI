@@ -8,14 +8,19 @@ namespace Iciclecreek.AI.Forms.Tests
     {
         public class IntListForm
         {
-            [ItemValidation("Range(1, 50)")]
+            public static Attribute[] ItemAttributes = new Attribute[]
+            {
+                new RangeAttribute(1,50),
+            };
+
+            [ItemValidation(typeof(RangeAttribute), 1, 50)]
             [UniqueItems]
             public List<int> Numbers { get; set; } = new List<int>();
         }
 
         public class EmailListForm
         {
-            [ItemValidation("EmailAddress")]
+            [ItemValidation(typeof(EmailAddressAttribute))]
             public List<string> Emails { get; set; } = new List<string>();
         }
 
@@ -38,7 +43,8 @@ namespace Iciclecreek.AI.Forms.Tests
             var results = new List<ValidationResult>();
             var isValid = Validator.TryValidateProperty(form.Numbers, context, results);
             Assert.IsFalse(isValid);
-            Assert.IsTrue(results[0].ErrorMessage.Contains("failed validation"));
+            Assert.IsTrue(results[0].ErrorMessage.Contains("between 1 and 50"));
+            Assert.IsTrue(results[0].ErrorMessage.Contains("Numbers[2]"));
         }
 
         [TestMethod]

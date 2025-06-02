@@ -50,7 +50,7 @@ namespace Iciclecreek.AI.Forms.Tests
         [Required(ErrorMessage = "Categories is required")]
         public List<string> Categories { get; private set; } = new List<string>();
 
-        [ItemValidation("RangeAttribute(0, 100)")]
+        [ItemValidation(typeof(RangeAttribute), 0, 100)]
         public List<int> Numbers { get; private set; } = new List<int>();
     }
 }

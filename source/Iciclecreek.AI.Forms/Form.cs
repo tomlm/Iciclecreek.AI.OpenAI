@@ -1,35 +1,27 @@
-﻿using Humanizer;
-using Iciclecreek.AI.OpenAI.FormFill.Attributes;
+﻿using Iciclecreek.AI.OpenAI.FormFill.Attributes;
 using Microsoft.Extensions.AI;
-using Microsoft.Recognizers.Text;
 using Microsoft.Recognizers.Text.Choice;
 using Microsoft.Recognizers.Text.DataTypes.TimexExpression;
 using Microsoft.Recognizers.Text.DateTime;
-using Microsoft.Recognizers.Text.Matcher;
 using Microsoft.Recognizers.Text.Number;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using System.Xml;
 
 namespace Iciclecreek.AI.Forms
 {
 
     [Description("A form which needs to be completed for a task")]
-    public class FormTask<FormT>
+    public class Form<FormT>
         where FormT : class
     {
         private List<AITool> _tools = new List<AITool>();
 
-        public FormTask()
+        public Form()
         {
-            this.Form = Activator.CreateInstance<FormT>();
+            this.FormData = Activator.CreateInstance<FormT>();
 
             // add the validation funcion
             _tools.Add(AIFunctionFactory.Create(GetType().GetMethod(nameof(AssignValue))!, this));
@@ -39,13 +31,13 @@ namespace Iciclecreek.AI.Forms
             _tools.Add(AIFunctionFactory.Create(GetType().GetMethod(nameof(RemoveValueFromCollection))!, this));
         }
 
-        public FormTask(FormT form)
+        public Form(FormT form)
         {
-            this.Form = form;
+            this.FormData = form;
         }
 
         [Description("The actual form data")]
-        public FormT Form { get; set; }
+        public FormT FormData { get; set; }
 
         [Description("The purpose of this form.")]
         public string Purpose { get; set; } = string.Empty;
@@ -53,6 +45,7 @@ namespace Iciclecreek.AI.Forms
         [Description("The status of the form collection.")]
         public FormStatus Status { get; set; }
 
+        #region Tools
         [Description("Assign a value to a property of the Form")]
         public ToolResult AssignValue(
             [Required]
@@ -71,7 +64,7 @@ namespace Iciclecreek.AI.Forms
             // If it's an array then we process the value as "add" operation
             if (propertyInfo!.PropertyType.IsList())
             {
-                var collection = (IList)propertyInfo.GetValue(Form);
+                var collection = (IList)propertyInfo.GetValue(FormData);
                 if (value is string || value.GetType().IsValueType)
                 {
                     if (!collection.Contains(value))
@@ -98,13 +91,13 @@ namespace Iciclecreek.AI.Forms
             }
 
             // get old value if any
-            var oldValue = propertyInfo.GetValue(Form);
+            var oldValue = propertyInfo.GetValue(FormData);
 
             // if it changed
             if (string.Compare(value?.ToString(), oldValue?.ToString(), ignoreCase: true) != 0)
             {
                 // set the new value
-                propertyInfo.SetValue(Form, newValue);
+                propertyInfo.SetValue(FormData, newValue);
 
                 // if old value was not null
                 if (oldValue != null)
@@ -146,7 +139,7 @@ namespace Iciclecreek.AI.Forms
                 return ToolResult.Failed(GetErrorMessage(value, propertyInfo, errorResponse), errorResponse);
             }
 
-            var collection = (IList)propertyInfo.GetValue(Form);
+            var collection = (IList)propertyInfo.GetValue(FormData);
             collection.Add(newValue);
 
             return ToolResult.Success($"Added {value} to {propertyInfo.Name}");
@@ -170,7 +163,7 @@ namespace Iciclecreek.AI.Forms
             if (!propertyInfo!.PropertyType.IsList())
                 return ToolResult.Failed($"Property {property} is not a collection type.");
 
-            var collection = (IList)propertyInfo.GetValue(Form);
+            var collection = (IList)propertyInfo.GetValue(FormData);
             if (value is string || value.GetType().IsValueType)
             {
                 collection.Remove(value);
@@ -193,12 +186,12 @@ namespace Iciclecreek.AI.Forms
             // If it's an array then we process the value as "remove" operation
             if (propertyInfo.PropertyType.IsList())
             {
-                var collection = (IList)propertyInfo.GetValue(Form);
+                var collection = (IList)propertyInfo.GetValue(FormData);
                 collection.Clear();
                 return ToolResult.Success($"Cleared values from {propertyInfo.Name}");
             }
 
-            propertyInfo.SetValue(Form, null);
+            propertyInfo.SetValue(FormData, null);
             return ToolResult.Success($"Cleared {propertyInfo.Name}");
         }
 
@@ -213,11 +206,18 @@ namespace Iciclecreek.AI.Forms
                 throw new Exception("nown property {property}");
             }
 
-            var value = propertyInfo.GetValue(Form);
+            var value = propertyInfo.GetValue(FormData);
             var result = ToolResult.Success($"Fetched {propertyInfo.Name}");
             result.Value = value;
             return result;
         }
+        #endregion
+
+        /// <summary>
+        /// Returns the list of tools for this form task.
+        /// </summary>
+        public IReadOnlyList<AITool> GetTools()
+            => _tools.AsReadOnly();
 
         /// <summary>
         /// Given a property and a value resolve the value to a valid value for the property or return errors
@@ -239,7 +239,7 @@ namespace Iciclecreek.AI.Forms
             }
 
             var validationResults = new List<ValidationResult>();
-            var context = new ValidationContext(Form)
+            var context = new ValidationContext(FormData)
             {
                 MemberName = propertyInfo.Name,
                 DisplayName = propertyInfo.Name,
@@ -346,7 +346,7 @@ namespace Iciclecreek.AI.Forms
                         else
                         {
                             var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                            realValue = timex.Merge((DateTimeOffset?)propertyInfo.GetValue(Form));
+                            realValue = timex.Merge((DateTimeOffset?)propertyInfo.GetValue(FormData));
                             //foreach (var date in dates)
                             //{
                             //    foreach (var time in times)
@@ -374,7 +374,7 @@ namespace Iciclecreek.AI.Forms
                         else
                         {
                             var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                            realValue = timex.Merge((DateTime?)propertyInfo.GetValue(Form));
+                            realValue = timex.Merge((DateTime?)propertyInfo.GetValue(FormData));
                         }
 
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
@@ -392,7 +392,7 @@ namespace Iciclecreek.AI.Forms
                         else
                         {
                             var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                            realValue = timex.Merge((TimeOnly?)propertyInfo.GetValue(Form));
+                            realValue = timex.Merge((TimeOnly?)propertyInfo.GetValue(FormData));
                         }
 
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
@@ -409,7 +409,7 @@ namespace Iciclecreek.AI.Forms
                         else
                         {
                             var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                            realValue = timex.Merge((DateOnly?)propertyInfo.GetValue(Form));
+                            realValue = timex.Merge((DateOnly?)propertyInfo.GetValue(FormData));
                         }
 
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
@@ -430,7 +430,7 @@ namespace Iciclecreek.AI.Forms
                         else
                         { 
                             var (timex, dates, times) = RecognizeTimex(propertyInfo, value, locale, refDate);
-                            realValue = timex.Merge((TimeSpan?)propertyInfo.GetValue(Form));
+                            realValue = timex.Merge((TimeSpan?)propertyInfo.GetValue(FormData));
                         }
                         if (!Validator.TryValidateProperty(realValue, context, validationResults))
                             return (null, validationResults);
@@ -562,51 +562,4 @@ namespace Iciclecreek.AI.Forms
     }
 
 
-    //public partial class FormFillEngine<FormT>
-    //    where FormT : class
-    //{
-    //    private readonly IChatClient _chatClient;
-
-    //    public FormFillEngine(IChatClient chatClient)
-    //    {
-    //        this._chatClient = new ChatClientBuilder(chatClient)
-    //            .UseFunctionInvocation()
-    //            .Build();
-    //    }
-
-    //    public void Tools()
-    //    {
-    //    }
-
-    //    public IList<ValidationResult> GetFormValidationErrors()
-    //    {
-    //        var results = new List<ValidationResult>();
-    //        var context = new ValidationContext(FormTask);
-
-    //        if (!Validator.TryValidateObject(FormTask, context, results, validateAllProperties: true))
-    //        {
-    //            return results;
-    //        }
-
-    //        return results;
-    //    }
-
-    //    public bool GetConfirmation(string message)
-    //    {
-    //        // This method can be used to get confirmation from the user
-    //        // For now, we will just return true to indicate confirmation
-    //        // In a real application, you might want to implement a way to get user input
-    //        return true;
-    //    }
-
-    //    public FormT SubmitForm()
-    //    {
-    //        // This method can be used to submit the form
-    //        // For now, we will just return the model as is
-    //        // In a real application, you might want to save the model to a database or perform some other action
-    //        return model;
-    //    }
-
-
-    //}
 }

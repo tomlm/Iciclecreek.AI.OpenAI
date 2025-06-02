@@ -1,8 +1,5 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Iciclecreek.AI.Forms;
 using Iciclecreek.AI.OpenAI.FormFill.Attributes;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Iciclecreek.AI.Forms.Tests
 {
@@ -12,7 +9,7 @@ namespace Iciclecreek.AI.Forms.Tests
         [TestMethod]
         public void ValidateItem_AllowsValidItem()
         {
-            var attr = new ItemValidationAttribute("Range(1, 10)");
+            var attr = new ItemValidationAttribute(typeof(RangeAttribute), 1, 10);
             var result = attr.ValidateItem(5);
             Assert.AreEqual(ValidationResult.Success, result);
         }
@@ -20,7 +17,7 @@ namespace Iciclecreek.AI.Forms.Tests
         [TestMethod]
         public void ValidateItem_RejectsInvalidItem()
         {
-            var attr = new ItemValidationAttribute("Range(1, 10)");
+            var attr = new ItemValidationAttribute(typeof(RangeAttribute), 1, 10);
             var result = attr.ValidateItem(20);
             Assert.IsNotNull(result);
             Assert.AreNotEqual(ValidationResult.Success, result);
